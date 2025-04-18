@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="IIT Hack Modern Password Generator – customize length, character sets, see strength, copy with one click."/>
+  <meta name="keywords" content="password generator, entropy, copy to clipboard, IIT Hack"/>
+  <meta name="author" content="IIT Hack"/>
+  <title>IIT Hack Password Generator</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon"/>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1f2026; color: #eceff1;
+      font-family: 'Roboto', sans-serif;
+      display: flex; flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+    }
+    .logo-container {
+      padding: 30px 0 10px;
+    }
+    .logo-container img {
+      height: 60px;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: start;
+      padding: 20px;
+      width: 100%;
+    }
+    .card {
+      background: #2c3e50;
+      border-radius: 12px;
+      padding: 30px;
+      width: 100%;
+      max-width: 600px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    }
+    .card h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 2rem;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .control {
+      margin-bottom: 20px;
+    }
+    .control label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #fff;
+    }
+    .control input[type="range"] {
+      width: 100%;
+      background: #4a6572;
+      border-radius: 5px;
+      height: 8px;
+    }
+    .toggles {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    .toggle {
+      display: flex;
+      align-items: center;
+    }
+    .toggle input {
+      margin-right: 8px;
+      transform: scale(1.2);
+    }
+    #strength-bar {
+      width: 100%;
+      height: 12px;
+      background: #4a6572;
+      border-radius: 5px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    #strength-fill {
+      height: 100%;
+      width: 0%;
+      background: #e74c3c;
+      transition: width 0.3s, background 0.3s;
+    }
+    #password {
+      width: calc(100% - 70px);
+      padding: 10px;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 6px 0 0 6px;
+      background: #2c3e50;
+      color: #2ecc71;
+      font-family: monospace;
+      letter-spacing: 0.5px;
+    }
+    #btn-copy, #btn-generate {
+      padding: 10px 15px;
+      border: none;
+      cursor: pointer;
+      background: #3498db;
+      color: #fff;
+      font-weight: bold;
+      border-radius: 6px;
+      transition: background .2s;
+    }
+    #btn-copy:hover, #btn-generate:hover {
+      background: #2980b9;
+    }
+    #controls-bottom {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    #privacy-note {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #2ecc71; /* green */
+    }
+  </style>
+</head>
+
+<body>
+  <div class="logo-container">
+    <a href="https://iithack.com" target="_blank">
+      <img src="logo.png" alt="IIT Hack Logo">
+    </a>
+  </div>
+
+  <main>
+    <div class="card">
+      <h1>Password Generator</h1>
+
+      <div class="control">
+        <label for="length">Length: <span id="length-val">16</span></label>
+        <input type="range" id="length" min="8" max="32" value="16">
+      </div>
+
+      <div class="toggles">
+        <div class="toggle">
+          <input type="checkbox" id="include-lower" checked>
+          <label for="include-lower">Lowercase</label>
+        </div>
+        <div class="toggle">
+          <input type="checkbox" id="include-upper" checked>
+          <label for="include-upper">Uppercase</label>
+        </div>
+        <div class="toggle">
+          <input type="checkbox" id="include-numbers" checked>
+          <label for="include-numbers">Numbers</label>
+        </div>
+        <div class="toggle">
+          <input type="checkbox" id="include-symbols" checked>
+          <label for="include-symbols">Symbols</label>
+        </div>
+      </div>
+
+      <div class="control">
+        <label>Strength:</label>
+        <div id="strength-bar"><div id="strength-fill"></div></div>
+      </div>
+
+      <div id="controls-bottom">
+        <button id="btn-generate">Generate</button>
+        <input type="text" id="password" readonly placeholder="Your password">
+        <button id="btn-copy">Copy</button>
+      </div>
+
+      <div id="privacy-note">
+        <p><strong>Note:</strong> Password generation occurs entirely on your device. It is not saved anywhere, ensuring your privacy and security.</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const lengthInput = document.getElementById('length');
+    const lengthVal   = document.getElementById('length-val');
+    const chkLower    = document.getElementById('include-lower');
+    const chkUpper    = document.getElementById('include-upper');
+    const chkNum      = document.getElementById('include-numbers');
+    const chkSym      = document.getElementById('include-symbols');
+    const strengthBar = document.getElementById('strength-fill');
+    const pwdInput    = document.getElementById('password');
+    const btnGen      = document.getElementById('btn-generate');
+    const btnCopy     = document.getElementById('btn-copy');
+
+    const LOWER = 'abcdefghijklmnopqrstuvwxyz';
+    const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const NUM   = '0123456789';
+    const SYM   = '!@#$%^&*()_+[]{}|;:,.<>?';
+
+    function loadSettings() {
+      const s = JSON.parse(localStorage.getItem('pwd-gen-settings')||'{}');
+      if (s.length)      lengthInput.value = s.length;
+      if (s.lower!=null) chkLower.checked = s.lower;
+      if (s.upper!=null) chkUpper.checked = s.upper;
+      if (s.num!=null)   chkNum.checked   = s.num;
+      if (s.sym!=null)   chkSym.checked   = s.sym;
+      updateLengthVal();
+    }
+
+    function saveSettings() {
+      localStorage.setItem('pwd-gen-settings', JSON.stringify({
+        length: +lengthInput.value,
+        lower:  chkLower.checked,
+        upper:  chkUpper.checked,
+        num:    chkNum.checked,
+        sym:    chkSym.checked
+      }));
+    }
+
+    function updateLengthVal() {
+      lengthVal.textContent = lengthInput.value;
+    }
+
+    function calcEntropy(len, poolSize) {
+      return (Math.log2(poolSize) * len) || 0;
+    }
+
+    function updateStrength(entropy) {
+      let pct = Math.min((entropy/200)*100, 100);
+      strengthBar.style.width = pct + '%';
+      if (pct < 50)            strengthBar.style.background = '#e74c3c';
+      else if (pct < 100)      strengthBar.style.background = '#f1c40f';
+      else                     strengthBar.style.background = '#2ecc71';
+    }
+
+    function generate() {
+      let pool = '';
+      if (chkLower.checked) pool += LOWER;
+      if (chkUpper.checked) pool += UPPER;
+      if (chkNum.checked)   pool += NUM;
+      if (chkSym.checked)   pool += SYM;
+      const len = +lengthInput.value;
+      if (!pool) {
+        pwdInput.value = '';
+        updateStrength(0);
+        return;
+      }
+      let pwd = '';
+      for (let i=0; i<len; i++) {
+        pwd += pool[Math.floor(Math.random()*pool.length)];
+      }
+      pwdInput.value = pwd;
+      const ent = calcEntropy(len, pool.length);
+      updateStrength(ent);
+    }
+
+    btnCopy.addEventListener('click', ()=>{
+      if (!pwdInput.value) return;
+      navigator.clipboard.writeText(pwdInput.value);
+      btnCopy.textContent = 'Copied!';
+      setTimeout(()=> btnCopy.textContent = 'Copy', 1500);
+    });
+
+    lengthInput.addEventListener('input', ()=> {
+      updateLengthVal();
+      saveSettings();
+    });
+    [chkLower, chkUpper, chkNum, chkSym].forEach(chk=>{
+      chk.addEventListener('change', ()=> saveSettings());
+    });
+    btnGen.addEventListener('click', generate);
+
+    loadSettings();
+    generate();
+  </script>
+</body>
+</html>
